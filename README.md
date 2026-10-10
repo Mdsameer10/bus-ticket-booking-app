@@ -98,10 +98,6 @@ MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-host>/intercity-bus-boo
 CLIENT_ORIGIN=http://localhost:4200
 ```
 
-Do not leave the `<...>` placeholders in the URI. The backend intentionally does not substitute an in-memory or fake database when `MONGODB_URI` is missing. A local URI such as `mongodb://127.0.0.1:27017/intercity-bus-booking` works only when MongoDB Server is installed and running on your computer. The frontend uses `http://localhost:5000/api` by default. If you run the backend on another port, update the Angular environment configuration in `frontend/src/environments/environment.ts`.
-
-If Node.js reports `querySrv ECONNREFUSED` for the Atlas hostname even though Windows DNS tools resolve it, optionally add `DNS_SERVERS=1.1.1.1,1.0.0.1` to `backend/.env` and restart the backend. This directs Node's MongoDB SRV lookup to those DNS servers. Omit this setting when your normal system DNS works.
-
 ## MongoDB Atlas setup
 
 1. Create a MongoDB Atlas cluster.
