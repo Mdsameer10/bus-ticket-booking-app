@@ -1,6 +1,6 @@
 # Intercity Bus Booking Application
 
-This project is a complete beginner-friendly intercity bus booking application built with Angular on the frontend and Express + MongoDB on the backend. It supports the Cochin and Calicut routes, includes sample travel operators, lets users search trips, book tickets, and retrieve existing bookings by reference.
+ Intercity bus booking application built with Angular on the frontend and Express + MongoDB on the backend. It supports the Cochin and Calicut routes, includes sample travel operators, lets users search trips, book tickets, and retrieve existing bookings by reference.
 
 ## Features
 
