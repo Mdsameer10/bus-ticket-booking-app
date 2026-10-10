@@ -46,11 +46,29 @@ const tripSchedules = [
     ticketPrice: 640,
   },
   {
+    busNumber: 'KL-07-EF-3003',
+    from: 'Cochin',
+    to: 'Calicut',
+    departureTime: '10:00',
+    arrivalTime: '15:20',
+    duration: '5h 20m',
+    ticketPrice: 580,
+  },
+  {
+    busNumber: 'KL-09-GH-4004',
+    from: 'Calicut',
+    to: 'Cochin',
+    departureTime: '09:00',
+    arrivalTime: '14:20',
+    duration: '5h 20m',
+    ticketPrice: 590,
+  },
+  {
     busNumber: 'KL-11-IJ-5005',
     from: 'Calicut',
     to: 'Cochin',
-    departureTime: '06:45',
-    arrivalTime: '12:00',
+    departureTime: '14:30',
+    arrivalTime: '19:45',
     duration: '5h 15m',
     ticketPrice: 560,
   },
@@ -73,12 +91,13 @@ function formatDate(date) {
   return `${year}-${month}-${day}`;
 }
 
-function getNextDates(count) {
+function getRemainingDatesThisMonth() {
   const dates = [];
   const today = new Date();
   today.setHours(12, 0, 0, 0);
+  const daysRemaining = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() - today.getDate() + 1;
 
-  for (let offset = 0; offset < count; offset += 1) {
+  for (let offset = 0; offset < daysRemaining; offset += 1) {
     const date = new Date(today);
     date.setDate(today.getDate() + offset);
     dates.push(formatDate(date));
@@ -131,7 +150,7 @@ async function seedBuses() {
 }
 
 async function seedTrips() {
-  const dates = getNextDates(12);
+  const dates = getRemainingDatesThisMonth();
   const createdTrips = [];
   const buses = await Bus.find({
     busNumber: { $in: tripSchedules.map((schedule) => schedule.busNumber) },
