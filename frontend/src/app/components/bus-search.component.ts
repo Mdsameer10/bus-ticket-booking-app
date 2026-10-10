@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-bus-search',
@@ -9,106 +9,186 @@ import { Router, RouterLink } from '@angular/router';
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   template: `
     <section class="page-shell">
-      <div class="hero-card">
-        <div class="hero-copy">
-          <p class="eyebrow">Sample travel booking experience</p>
-          <h1>Find your next intercity bus</h1>
-          <p>
-            Search between Cochin and Calicut for available trips from sample operators.
-          </p>
+      <div class="hero-intro">
+        <p class="eyebrow"><span class="eyebrow-dot"></span> COCHIN ↔ CALICUT</p>
+        <h1>Make the journey<br /><span>part of the plan.</span></h1>
+        <p class="intro-copy">
+          Compare schedules, choose your seat count and book your next trip in a few simple steps.
+        </p>
+      </div>
+
+      <form [formGroup]="searchForm" (ngSubmit)="onSubmit()" class="bus-search-form" novalidate>
+        <div class="form-heading">
+          <div>
+            <p class="form-kicker">Plan your trip</p>
+            <h2>Where would you like to go?</h2>
+          </div>
+          <span class="sample-label">Sample schedules</span>
         </div>
 
-        <form [formGroup]="searchForm" (ngSubmit)="onSubmit()" class="bus-search-form" novalidate>
+        <div class="form-fields">
           <div class="field-wrapper">
-            <label for="from">From City</label>
-            <select id="from" formControlName="from">
-              <option value="">Select city</option>
+            <label for="from">From</label>
+            <select id="from" formControlName="from" autocomplete="off">
+              <option value="">Choose departure city</option>
               <option value="Cochin">Cochin</option>
               <option value="Calicut">Calicut</option>
             </select>
             <small class="error" *ngIf="searchForm.get('from')?.touched && searchForm.get('from')?.hasError('required')">
-              Please select a departure city.
+              Choose a departure city.
             </small>
           </div>
 
           <div class="field-wrapper">
-            <label for="to">To City</label>
-            <select id="to" formControlName="to">
-              <option value="">Select city</option>
+            <label for="to">To</label>
+            <select id="to" formControlName="to" autocomplete="off">
+              <option value="">Choose destination city</option>
               <option value="Cochin">Cochin</option>
               <option value="Calicut">Calicut</option>
             </select>
             <small class="error" *ngIf="searchForm.get('to')?.touched && searchForm.get('to')?.hasError('required')">
-              Please select a destination city.
+              Choose a destination city.
             </small>
           </div>
 
-          <div class="field-wrapper">
-            <label for="journeyDate">Journey Date</label>
-            <input id="journeyDate" type="date" formControlName="journeyDate" />
+          <div class="field-wrapper date-field">
+            <label for="journeyDate">Journey date</label>
+            <input id="journeyDate" type="date" [min]="today" formControlName="journeyDate" />
             <small class="error" *ngIf="searchForm.get('journeyDate')?.touched && searchForm.get('journeyDate')?.hasError('required')">
-              Journey date is required.
+              Choose a journey date.
+            </small>
+            <small class="error" *ngIf="searchForm.get('journeyDate')?.touched && searchForm.get('journeyDate')?.hasError('pastDate')">
+              Journey date cannot be in the past.
             </small>
           </div>
+        </div>
 
-          <div class="field-alert" *ngIf="searchForm.errors?.['sameCity'] && searchForm.touched">
-            Departure and destination cities cannot be the same.
-          </div>
+        <div class="field-alert" *ngIf="searchForm.errors?.['sameCity']">
+          Departure and destination cities must be different.
+        </div>
 
+        <div class="form-footer">
+          <p>Secure your seats in just a few steps.</p>
           <button type="submit" [disabled]="searchForm.invalid || isLoading">
-            {{ isLoading ? 'Searching...' : 'Search Buses' }}
+            {{ isLoading ? 'Searching…' : 'Search buses' }}
+            <span aria-hidden="true">→</span>
           </button>
-        </form>
-      </div>
+        </div>
+      </form>
 
-      <div class="quick-links">
-        <a class="secondary-link" routerLink="/lookup">Retrieve booking by reference</a>
+      <div class="home-bottom">
+        <div class="benefit">
+          <span class="benefit-mark" aria-hidden="true">01</span>
+          <div><strong>Compare your options</strong><span>Browse schedules and fares in one place.</span></div>
+        </div>
+        <div class="benefit">
+          <span class="benefit-mark" aria-hidden="true">02</span>
+          <div><strong>Book with confidence</strong><span>Seat availability is confirmed when you book.</span></div>
+        </div>
+        <a class="lookup-link" routerLink="/lookup">Already booked? <strong>Find your booking →</strong></a>
       </div>
     </section>
   `,
   styles: [
     `
       .page-shell {
-        max-width: 1100px;
+        max-width: 1080px;
         margin: 0 auto;
-        padding: 48px 20px 80px;
+        padding: 72px 24px 68px;
       }
 
-      .hero-card {
-        display: grid;
-        grid-template-columns: 1.15fr 1fr;
-        gap: 28px;
-        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-        border-radius: 20px;
-        color: #fff;
-        padding: 32px;
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+      .hero-intro {
+        max-width: 650px;
+        margin: 0 auto 34px;
+        text-align: center;
       }
 
       .eyebrow {
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        font-size: 12px;
-        opacity: 0.8;
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0 0 18px;
+        color: #23756c;
+        font-size: 0.74rem;
+        font-weight: 750;
+        letter-spacing: 0.14em;
       }
 
-      .hero-copy h1 {
-        font-size: clamp(2rem, 4vw, 3rem);
-        margin: 10px 0 16px;
+      .eyebrow-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #e4a94f;
       }
 
-      .hero-copy p {
-        color: rgba(255, 255, 255, 0.84);
-        line-height: 1.6;
+      h1 {
+        margin: 0;
+        color: #172b4d;
+        font-size: clamp(2.5rem, 5vw, 4.15rem);
+        font-weight: 750;
+        letter-spacing: -0.055em;
+        line-height: 1.06;
+      }
+
+      h1 span {
+        color: #24776d;
+      }
+
+      .intro-copy {
+        max-width: 500px;
+        margin: 18px auto 0;
+        color: #69788e;
+        font-size: 1.05rem;
+        line-height: 1.65;
       }
 
       .bus-search-form {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 16px;
-        padding: 20px;
-        display: grid;
+        padding: 28px;
+        border: 1px solid #e8edf2;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 18px 48px rgba(25, 48, 76, 0.08);
+      }
+
+      .form-heading,
+      .form-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 16px;
+      }
+
+      .form-kicker {
+        margin: 0 0 5px;
+        color: #24776d;
+        font-size: 0.75rem;
+        font-weight: 750;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        margin: 0;
+        color: #172b4d;
+        font-size: 1.25rem;
+        letter-spacing: -0.02em;
+      }
+
+      .sample-label {
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: #eff7f5;
+        color: #24776d;
+        font-size: 0.74rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .form-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+        margin-top: 24px;
       }
 
       .field-wrapper {
@@ -117,68 +197,194 @@ import { Router, RouterLink } from '@angular/router';
       }
 
       label {
-        font-size: 0.92rem;
-        font-weight: 600;
+        color: #36465d;
+        font-size: 0.83rem;
+        font-weight: 700;
       }
 
       select, input {
-        border: 1px solid rgba(148, 163, 184, 0.7);
+        width: 100%;
+        min-height: 49px;
+        border: 1px solid #dbe3ea;
         border-radius: 10px;
-        padding: 12px 14px;
-        font-size: 1rem;
+        outline: none;
+        background: #fff;
+        color: #26374d;
+        padding: 0 13px;
+        font-size: 0.91rem;
+        transition: border-color 160ms ease, box-shadow 160ms ease;
+      }
+
+      select:focus, input:focus {
+        border-color: #38877f;
+        box-shadow: 0 0 0 3px rgba(56, 135, 127, 0.13);
+      }
+
+      .form-footer {
+        margin-top: 22px;
+        padding-top: 20px;
+        border-top: 1px solid #edf0f3;
+      }
+
+      .form-footer p {
+        margin: 0;
+        color: #7a8798;
+        font-size: 0.82rem;
       }
 
       button {
-        background: #f59e0b;
-        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        min-height: 48px;
+        border: 0;
         border-radius: 10px;
-        color: #0f172a;
+        background: #1f746b;
+        color: #fff;
         font-weight: 700;
-        padding: 12px 18px;
+        padding: 0 19px;
         cursor: pointer;
+        transition: background 160ms ease, transform 160ms ease;
+      }
+
+      button:hover:not(:disabled) {
+        background: #195f58;
+        transform: translateY(-1px);
       }
 
       button:disabled {
         cursor: not-allowed;
-        opacity: 0.7;
+        opacity: 0.55;
       }
 
-      .error, .field-alert {
-        color: #fecaca;
+      .error {
+        color: #b42318;
+        font-size: 0.78rem;
+      }
+
+      .field-alert {
+        margin-top: 12px;
+        color: #b42318;
+        font-size: 0.84rem;
+      }
+
+      .home-bottom {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+        margin-top: 30px;
+      }
+
+      .benefit {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+      }
+
+      .benefit-mark {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 auto;
+        place-items: center;
+        border: 1px solid #d7e8e4;
+        border-radius: 50%;
+        color: #24776d;
+        font-size: 0.66rem;
+        font-weight: 800;
+      }
+
+      .benefit strong,
+      .benefit span:last-child {
+        display: block;
+      }
+
+      .benefit strong {
+        color: #30415a;
         font-size: 0.8rem;
       }
 
-      .quick-links {
-        margin-top: 20px;
-        text-align: center;
+      .benefit div span {
+        margin-top: 3px;
+        color: #7a8798;
+        font-size: 0.72rem;
       }
 
-      .secondary-link {
-        color: #1e3a8a;
-        font-weight: 700;
-        text-decoration: none;
+      .lookup-link {
+        margin-left: auto;
+        color: #6d7c90;
+        font-size: 0.8rem;
+      }
+
+      .lookup-link strong {
+        color: #24776d;
       }
 
       @media (max-width: 760px) {
-        .hero-card {
+        .page-shell {
+          padding: 48px 18px;
+        }
+
+        .form-fields {
           grid-template-columns: 1fr;
-          padding: 20px;
+          gap: 13px;
+          margin-top: 20px;
+        }
+
+        .bus-search-form {
+          padding: 22px;
+        }
+
+        .home-bottom {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 18px;
+        }
+
+        .lookup-link {
+          margin-left: 0;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .page-shell {
+          padding-top: 38px;
+        }
+
+        .form-heading {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .form-footer {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .form-footer button {
+          width: 100%;
         }
       }
     `,
   ],
 })
-export class BusSearchComponent {
+export class BusSearchComponent implements OnInit {
   isLoading = false;
+  today = this.getDefaultDate();
 
   searchForm!: FormGroup;
 
-  constructor(private fb: FormBuilder, private router: Router) {
+  constructor(
+    private fb: FormBuilder,
+    private route: ActivatedRoute,
+    private router: Router
+  ) {
     this.searchForm = this.fb.group(
       {
         from: ['', Validators.required],
         to: ['', Validators.required],
-        journeyDate: [this.getDefaultDate(), Validators.required],
+        journeyDate: [this.today, [Validators.required, this.validateJourneyDate]],
       },
       {
         validators: this.validateCities,
@@ -186,16 +392,38 @@ export class BusSearchComponent {
     );
   }
 
+  ngOnInit(): void {
+    this.route.queryParamMap.subscribe((params) => {
+      const from = params.get('from');
+      const to = params.get('to');
+      const date = params.get('date');
+
+      this.searchForm.patchValue({
+        from: from === 'Cochin' || from === 'Calicut' ? from : '',
+        to: to === 'Cochin' || to === 'Calicut' ? to : '',
+        journeyDate: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : this.today,
+      });
+    });
+  }
+
   private validateCities(group: FormGroup) {
     const from = group.get('from')?.value;
     const to = group.get('to')?.value;
 
-    if (!from || !to || from === to) {
+    if (from && to && from === to) {
       return { sameCity: true };
     }
 
     return null;
   }
+
+  private validateJourneyDate = (control: AbstractControl) => {
+    if (!control.value) {
+      return null;
+    }
+
+    return control.value < this.today ? { pastDate: true } : null;
+  };
 
   private getDefaultDate(): string {
     const today = new Date();

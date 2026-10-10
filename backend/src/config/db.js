@@ -1,9 +1,24 @@
 const mongoose = require('mongoose');
+const dns = require('node:dns');
 
 async function connectDB() {
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/intercity-bus-booking';
+  const uri = process.env.MONGODB_URI;
+  const dnsServers = process.env.DNS_SERVERS
+    ?.split(',')
+    .map((server) => server.trim())
+    .filter(Boolean);
 
   mongoose.set('strictQuery', true);
+
+  if (dnsServers?.length) {
+    dns.setServers(dnsServers);
+  }
+
+  if (!uri) {
+    throw new Error(
+      'MONGODB_URI is not configured. Copy backend/.env.example to backend/.env and set MONGODB_URI to your MongoDB Atlas URI or a running local MongoDB instance.'
+    );
+  }
 
   try {
     await mongoose.connect(uri, {

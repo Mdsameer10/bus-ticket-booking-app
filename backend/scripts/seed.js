@@ -26,16 +26,58 @@ const busData = [
   { busNumber: 'KL-15-OP-8008', name: 'Night Service', operatorName: 'Greenline Travels', capacity: 30, type: 'Sleeper', details: 'Sample bus data for assessment only.' },
 ];
 
-const routePairs = [
-  { from: 'Cochin', to: 'Calicut' },
-  { from: 'Calicut', to: 'Cochin' },
+const tripSchedules = [
+  {
+    busNumber: 'KL-01-AB-1001',
+    from: 'Cochin',
+    to: 'Calicut',
+    departureTime: '06:30',
+    arrivalTime: '11:45',
+    duration: '5h 15m',
+    ticketPrice: 520,
+  },
+  {
+    busNumber: 'KL-05-CD-2002',
+    from: 'Cochin',
+    to: 'Calicut',
+    departureTime: '08:15',
+    arrivalTime: '13:40',
+    duration: '5h 25m',
+    ticketPrice: 640,
+  },
+  {
+    busNumber: 'KL-11-IJ-5005',
+    from: 'Calicut',
+    to: 'Cochin',
+    departureTime: '06:45',
+    arrivalTime: '12:00',
+    duration: '5h 15m',
+    ticketPrice: 560,
+  },
+  {
+    busNumber: 'KL-12-KL-6006',
+    from: 'Calicut',
+    to: 'Cochin',
+    departureTime: '18:15',
+    arrivalTime: '23:40',
+    duration: '5h 25m',
+    ticketPrice: 680,
+  },
 ];
 
-const formatDate = (date) => date.toISOString().slice(0, 10);
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
 
 function getNextDates(count) {
   const dates = [];
   const today = new Date();
+  today.setHours(12, 0, 0, 0);
+
   for (let offset = 0; offset < count; offset += 1) {
     const date = new Date(today);
     date.setDate(today.getDate() + offset);
@@ -70,7 +112,16 @@ async function seedBuses() {
 
     const created = await Bus.findOneAndUpdate(
       { busNumber: item.busNumber },
-      { $set: { ...item, operator: operator._id } },
+      {
+        $set: {
+          name: item.name,
+          operator: operator._id,
+          capacity: item.capacity,
+          type: item.type,
+          details: item.details,
+          active: true,
+        },
+      },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     createdBuses.push(created);
@@ -82,36 +133,41 @@ async function seedBuses() {
 async function seedTrips() {
   const dates = getNextDates(12);
   const createdTrips = [];
+  const buses = await Bus.find({
+    busNumber: { $in: tripSchedules.map((schedule) => schedule.busNumber) },
+    active: true,
+  });
+  const busesByNumber = new Map(buses.map((bus) => [bus.busNumber, bus]));
 
-  for (const date of dates) {
-    for (const [index, route] of routePairs.entries()) {
-      const busList = await Bus.find({ active: true }).populate('operator');
-      const sampleBus = busList[index % busList.length];
-
-      if (!sampleBus) continue;
-
-      const tripData = {
-        bus: sampleBus._id,
-        from: route.from,
-        to: route.to,
+  for (const [dateIndex, date] of dates.entries()) {
+    for (const schedule of tripSchedules) {
+      const bus = busesByNumber.get(schedule.busNumber);
+      if (!bus) {
+        throw new Error(`Sample bus ${schedule.busNumber} was not found after seeding.`);
+      }
+      const tripFields = {
+        bus: bus._id,
+        from: schedule.from,
+        to: schedule.to,
         journeyDate: date,
-        departureTime: index === 0 ? '06:30' : '18:15',
-        arrivalTime: index === 0 ? '11:45' : '23:40',
-        duration: index === 0 ? '5h 15m' : '5h 25m',
-        ticketPrice: index === 0 ? 520 : 640,
-        availableSeats: 25 + (date.length % 8),
+        departureTime: schedule.departureTime,
+        arrivalTime: schedule.arrivalTime,
+        duration: schedule.duration,
+        ticketPrice: schedule.ticketPrice,
         status: 'scheduled',
       };
-
       const saved = await Trip.findOneAndUpdate(
         {
-          bus: sampleBus._id,
-          from: route.from,
-          to: route.to,
+          bus: bus._id,
+          from: schedule.from,
+          to: schedule.to,
           journeyDate: date,
-          departureTime: tripData.departureTime,
+          departureTime: schedule.departureTime,
         },
-        { $set: tripData },
+        {
+          $set: tripFields,
+          $setOnInsert: { availableSeats: 25 + (dateIndex % 8) },
+        },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
 
@@ -127,8 +183,8 @@ async function seed() {
     await connectDB();
     await seedOperators();
     await seedBuses();
-    await seedTrips();
-    console.log('Sample travel data inserted successfully.');
+    const trips = await seedTrips();
+    console.log(`Sample travel data inserted or updated: ${operatorData.length} operators, ${busData.length} buses, ${trips.length} trips.`);
   } catch (error) {
     console.error('Seeding failed:', error.message);
     process.exitCode = 1;

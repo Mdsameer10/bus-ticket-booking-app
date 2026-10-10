@@ -144,7 +144,13 @@ export class BusResultsComponent implements OnInit {
   }
 
   goHome(): void {
-    this.router.navigate(['/']);
+    this.router.navigate(['/'], {
+      queryParams: {
+        from: this.from,
+        to: this.to,
+        date: this.date,
+      },
+    });
   }
 
   goToBooking(tripId: string): void {
