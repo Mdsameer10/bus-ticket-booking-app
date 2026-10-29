@@ -6,6 +6,8 @@ const Operator = require('../src/models/Operator');
 const Bus = require('../src/models/Bus');
 const Trip = require('../src/models/Trip');
 
+const SCHEDULE_DAYS_AHEAD = 60;
+
 const operatorData = [
   { name: 'Asian Travels', description: 'Sample operator data for demonstration only.', contactInfo: 'Phone: +91 98765 43210', active: true },
   { name: 'A1 Travels', description: 'Sample operator data for demonstration only.', contactInfo: 'Phone: +91 98765 43211', active: true },
@@ -91,13 +93,12 @@ function formatDate(date) {
   return `${year}-${month}-${day}`;
 }
 
-function getRemainingDatesThisMonth() {
+function getUpcomingDates(daysAhead) {
   const dates = [];
   const today = new Date();
   today.setHours(12, 0, 0, 0);
-  const daysRemaining = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() - today.getDate() + 1;
 
-  for (let offset = 0; offset < daysRemaining; offset += 1) {
+  for (let offset = 0; offset < daysAhead; offset += 1) {
     const date = new Date(today);
     date.setDate(today.getDate() + offset);
     dates.push(formatDate(date));
@@ -150,7 +151,7 @@ async function seedBuses() {
 }
 
 async function seedTrips() {
-  const dates = getRemainingDatesThisMonth();
+  const dates = getUpcomingDates(SCHEDULE_DAYS_AHEAD);
   const createdTrips = [];
   const buses = await Bus.find({
     busNumber: { $in: tripSchedules.map((schedule) => schedule.busNumber) },
@@ -203,7 +204,9 @@ async function seed() {
     await seedOperators();
     await seedBuses();
     const trips = await seedTrips();
-    console.log(`Sample travel data inserted or updated: ${operatorData.length} operators, ${busData.length} buses, ${trips.length} trips.`);
+    console.log(
+      `Sample travel data inserted or updated: ${operatorData.length} operators, ${busData.length} buses, ${trips.length} trips across the next ${SCHEDULE_DAYS_AHEAD} days.`
+    );
   } catch (error) {
     console.error('Seeding failed:', error.message);
     process.exitCode = 1;
